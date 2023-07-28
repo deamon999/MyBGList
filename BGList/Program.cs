@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Versioning;
 
 namespace BGList
 {
@@ -20,6 +22,7 @@ namespace BGList
             builder.Services.AddSwaggerGen(opts =>
                 opts.ResolveConflictingActions(apiDesc => apiDesc.First())
             );
+            builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
             // Adding CORS
             builder.Services.AddCors(options =>
@@ -39,13 +42,35 @@ namespace BGList
                 });
             });
 
+            // MVC Api Versioning
+            builder.Services.AddApiVersioning(options =>
+            {
+                options.ApiVersionReader = new UrlSegmentApiVersionReader();
+                options.AssumeDefaultVersionWhenUnspecified = true;
+                options.ReportApiVersions = true;
+                options.DefaultApiVersion = new ApiVersion(1, 0);
+            });
+            builder.Services.AddVersionedApiExplorer(options =>
+            {
+                options.GroupNameFormat = "'v'VVV";
+                options.SubstituteApiVersionInUrl = true;
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(options =>
+                {
+                    var apiVersionDescriptionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+                    foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)
+                    {
+                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                            description.GroupName.ToUpperInvariant());
+                    }
+                });
             }
 
             if (app.Configuration.GetValue<bool>("UseDeveloperExceptionPage"))
@@ -59,17 +84,21 @@ namespace BGList
 
             app.UseHttpsRedirection();
             app.UseCors();
+
             app.UseAuthorization();
 
             // Minimal API
             //app.MapGet("/error", [EnableCors("AnyOrigin")] () => Results.Problem());
-            app.MapGet("/error/test",
-                [ResponseCache(NoStore = true)]
-            () =>
-                { throw new Exception("test"); }
-                ).RequireCors("AnyOrigin");
+            app.MapGet("/v{version:ApiVersion}/error/test",
+                [ApiVersion("1.0")]
+            [ApiVersion("2.0")]
+            [ResponseCache(NoStore = true)] () =>
+                    { throw new Exception("test"); }
+                    ).RequireCors("AnyOrigin");
 
-            app.MapGet("/code/test",
+            app.MapGet("/v{version:ApiVersion}/code/test",
+                [ApiVersion("1.0")]
+            [ApiVersion("2.0")]
             [EnableCors("AnyOrigin")]
             [ResponseCache(NoStore = true)] () =>
                     Results.Text("<script>" +
