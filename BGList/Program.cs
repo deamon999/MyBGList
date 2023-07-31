@@ -1,7 +1,10 @@
+using BGList.Model;
+
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.EntityFrameworkCore;
 
 namespace BGList
 {
@@ -55,6 +58,11 @@ namespace BGList
                 options.GroupNameFormat = "'v'VVV";
                 options.SubstituteApiVersionInUrl = true;
             });
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlite(
+                builder.Configuration.GetConnectionString("DefaultConnection"))
+            );
 
             var app = builder.Build();
 
