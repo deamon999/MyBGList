@@ -2,6 +2,9 @@
 using BGList.Model;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+using System.Linq.Dynamic.Core;
 
 namespace BGList.Controllers.v1
 {
@@ -12,44 +15,45 @@ namespace BGList.Controllers.v1
     public class BoardGamesController : ControllerBase
     {
         private readonly ILogger<BoardGamesController> _logger;
-        public BoardGamesController(ILogger<BoardGamesController> logger)
+        private readonly ApplicationDbContext _context;
+        public BoardGamesController(ILogger<BoardGamesController> logger, ApplicationDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
-        [ResponseCache(Location = ResponseCacheLocation.Any, Duration = 60)]
         [HttpGet(Name = "GetBoardGames")]
-        public RestDTO<BoardGame[]> Get()
+        [ResponseCache(Location = ResponseCacheLocation.Any, Duration = 60)]
+        public async Task<RestDTO<BoardGame[]>> Get(
+            int pageIndex = 0,
+            int pageSize = 10,
+            string? sortColumn = "Name",
+            string? sortOrder = "ASC",
+            string? filterQuery = null)
         {
+            var query = _context.BoardGames.AsQueryable();
+            if (!string.IsNullOrEmpty(filterQuery))
+                query = query.Where(b => b.Name.Contains(filterQuery));
+            var recordCount = await query.CountAsync();
+            query = query
+            .OrderBy($"{sortColumn} {sortOrder}")
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize);
             return new RestDTO<BoardGame[]>()
             {
-                Data = new[] {
-                        new BoardGame()
-                        {
-                            Id = 1,
-                            Name = "Axis & Allies",
-                            Year = 1981
-                        },
-                        new BoardGame()
-                        {
-                            Id = 2,
-                            Name = "Citadels",
-                            Year = 2000
-                        },
-                        new BoardGame()
-                        {
-                            Id = 3,
-                            Name = "Terraforming Mars",
-                            Year = 2016
-                        }
-                    },
-                Links = new List<DTO.v1.LinkDTO>
-                    {
-                        new LinkDTO(
-                    Url.Action(null, "BoardGames", null, Request.Scheme)!,
-                    "self",
-                    "GET"),
-                    }
+                Data = await query.ToArrayAsync(),
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                RecordCount = recordCount,
+                Links = new List<LinkDTO> {
+                new LinkDTO(
+                Url.Action(null,
+                "BoardGames",
+                new { pageIndex, pageSize },
+                Request.Scheme)!,
+                "self",
+                "GET"),
+                }
             };
         }
     }
