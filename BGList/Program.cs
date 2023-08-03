@@ -1,4 +1,5 @@
 using BGList.Model;
+using BGList.Swagger;
 
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,10 @@ namespace BGList
             // Fixing ruting conflicts
             //builder.Services.AddSwaggerGen();
             builder.Services.AddSwaggerGen(opts =>
-                opts.ResolveConflictingActions(apiDesc => apiDesc.First())
+            {
+                opts.ResolveConflictingActions(apiDesc => apiDesc.First());
+                opts.ParameterFilter<SortOrderFilter>();
+            }
             );
             builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
