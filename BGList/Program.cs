@@ -14,6 +14,16 @@ namespace BGList
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Logging
+                .ClearProviders()
+                .AddSimpleConsole()
+                //.AddSimpleConsole(options =>
+                //{
+                //    options.SingleLine = true;
+                //    options.TimestampFormat = "HH:mm:ss ";
+                //    options.UseUtcTimestamp = true;
+                //})
+                .AddDebug();
 
             // Add services to the container.
 

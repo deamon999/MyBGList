@@ -1,4 +1,5 @@
-﻿using BGList.DTO;
+﻿using BGList.Constants;
+using BGList.DTO;
 using BGList.DTO.v1;
 using BGList.Model;
 
@@ -27,6 +28,7 @@ namespace BGList.Controllers.v1
         [ResponseCache(Location = ResponseCacheLocation.Any, Duration = 60)]
         public async Task<RestDTO<BoardGame[]>> Get([FromQuery] RequestDTO input)
         {
+            _logger.LogInformation(CustomLogEvents.BoardGamesController_Get, "Get method started.");
             var query = _context.BoardGames.AsQueryable();
             if (!string.IsNullOrEmpty(input.FilterQuery))
                 query = query.Where(b => b.Name.Contains(input.FilterQuery));
