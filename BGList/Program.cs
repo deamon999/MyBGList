@@ -1,3 +1,4 @@
+using BGList.Constants;
 using BGList.Model;
 using BGList.Swagger;
 
@@ -27,7 +28,17 @@ namespace BGList
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.CacheProfiles.Add(BGListConstants.CACHE_NO_STORE,
+                    new CacheProfile() { NoStore = true });
+                options.CacheProfiles.Add(BGListConstants.CACHE_DEFAULT_60_STORE,
+                new CacheProfile()
+                {
+                    Location = ResponseCacheLocation.Any,
+                    Duration = 60
+                });
+            });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
 
@@ -39,6 +50,7 @@ namespace BGList
                 opts.ParameterFilter<SortOrderFilter>();
             }
             );
+            // Adding Swagger configuration
             builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
             // Adding CORS
@@ -46,11 +58,11 @@ namespace BGList
             {
                 options.AddDefaultPolicy(cfg =>
                 {
-                    cfg.WithOrigins(builder.Configuration["AllowedOrigins"]);
+                    cfg.WithOrigins(builder.Configuration[BGListConstants.CORS_DEFAULT_POLICY]);
                     cfg.AllowAnyHeader();
                     cfg.AllowAnyMethod();
                 });
-                options.AddPolicy(name: "AnyOrigin",
+                options.AddPolicy(name: BGListConstants.CORS_ANY_ORIGIN_POLICY,
                 cfg =>
                 {
                     cfg.AllowAnyOrigin();
@@ -77,6 +89,9 @@ namespace BGList
                 options.UseSqlite(
                 builder.Configuration.GetConnectionString("DefaultConnection"))
             );
+
+            //In memory cache added
+            builder.Services.AddMemoryCache();
 
             var app = builder.Build();
 
@@ -121,7 +136,7 @@ namespace BGList
             app.MapGet("/v{version:ApiVersion}/code/test",
                 [ApiVersion("1.0")]
             [ApiVersion("2.0")]
-            [EnableCors("AnyOrigin")]
+            [EnableCors(BGListConstants.CORS_ANY_ORIGIN_POLICY)]
             [ResponseCache(NoStore = true)] () =>
                     Results.Text("<script>" +
                     "window.alert('Your client supports JavaScript!" +
