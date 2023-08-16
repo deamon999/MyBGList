@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 namespace BGList
 {
@@ -51,8 +52,31 @@ namespace BGList
             {
                 opts.ResolveConflictingActions(apiDesc => apiDesc.First());
                 opts.ParameterFilter<SortOrderFilter>();
-            }
-            );
+
+                opts.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    In = ParameterLocation.Header,
+                    Description = "Please enter token",
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    BearerFormat = "JWT",
+                    Scheme = "bearer"
+                });
+                opts.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                 });
+            });
             // Adding Swagger configuration
             builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
@@ -125,6 +149,13 @@ namespace BGList
                 System.Text.Encoding.UTF8.GetBytes(
                     builder.Configuration["JWT:SigningKey"]))
                 };
+            });
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("ModeratorOrAdministrator", policy =>
+                    policy.RequireAssertion(context =>
+                    context.User.HasClaim(c =>
+                    (c.Value == RoleNames.Administrator || c.Value == RoleNames.Moderator))));
             });
             //In memory cache added
             builder.Services.AddMemoryCache();

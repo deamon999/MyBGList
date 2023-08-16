@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace BGList.Controllers
 {
 
+    [ApiVersion("1.0")]
+    [ApiVersion("2.0")]
     [ApiController]
     public class ErrorController : ControllerBase
     {

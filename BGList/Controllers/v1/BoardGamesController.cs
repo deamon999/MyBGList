@@ -6,6 +6,7 @@ using BGList.DTO;
 using BGList.DTO.v1;
 using BGList.Model;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,6 +29,7 @@ namespace BGList.Controllers.v1
             _memoryCache = cache;
         }
 
+        [Authorize(Policy = "ModeratorOrAdministrator")]
         [HttpGet(Name = "GetBoardGames")]
         [ResponseCache(CacheProfileName = BGListConstants.CACHE_DEFAULT_60_STORE)]
         public async Task<RestDTO<BoardGame[]>> Get([FromQuery] RequestDTO input)
@@ -68,6 +70,7 @@ namespace BGList.Controllers.v1
             };
         }
 
+        [Authorize(Roles = RoleNames.Moderator)]
         [HttpPost(Name = "CreateBoardGame")]
         [ResponseCache(NoStore = true)]
         public async Task<RestDTO<BoardGame?>> Post(BoardGameDTO model)
@@ -104,7 +107,7 @@ namespace BGList.Controllers.v1
             };
         }
 
-
+        [Authorize(Roles = RoleNames.Moderator)]
         [HttpPut(Name = "UpdateBoardGame")]
         [ResponseCache(NoStore = true)]
         public async Task<RestDTO<BoardGame?>> Put(BoardGameDTO model)
@@ -140,7 +143,7 @@ namespace BGList.Controllers.v1
             };
         }
 
-
+        [Authorize(Roles = RoleNames.Administrator)]
         [HttpDelete(Name = "DeleteBoardGame")]
         [ResponseCache(NoStore = true)]
         public async Task<RestDTO<BoardGame?>> Delete(int id)

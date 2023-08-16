@@ -1,32 +1,42 @@
-﻿using BGList.Model;
+﻿using System.Globalization;
+
+using BGList.Constants;
+using BGList.Model;
 using BGList.Model.CSV;
 
 using CsvHelper;
 using CsvHelper.Configuration;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-using System.Globalization;
-
 namespace BGList.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [ApiVersion("2.0")]
     public class SeedController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<SeedController> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly UserManager<ApiUser> _userManager;
 
         public SeedController(
         ApplicationDbContext context,
         ILogger<SeedController> logger,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        RoleManager<IdentityRole> roleManager,
+        UserManager<ApiUser> userManager)
         {
             _context = context;
             _logger = logger;
             _env = env;
+            _roleManager = roleManager;
+            _userManager = userManager;
         }
 
         [HttpPut(Name = "Seed")]
@@ -135,6 +145,43 @@ namespace BGList.Controllers
                 Domains = _context.Domains.Count(),
                 Mechanics = _context.Mechanics.Count(),
                 SkippedRows = skippedRows
+            });
+        }
+
+
+        [HttpPost]
+        [ResponseCache(NoStore = true)]
+        public async Task<IActionResult> AuthData()
+        {
+            int rolesCreated = 0;
+            int usersAddedToRoles = 0;
+            if (!await _roleManager.RoleExistsAsync(RoleNames.Moderator))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(RoleNames.Moderator));
+                rolesCreated++;
+            }
+            if (!await _roleManager.RoleExistsAsync(RoleNames.Administrator))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(RoleNames.Administrator));
+                rolesCreated++;
+            }
+            var testModerator = await _userManager.FindByNameAsync("TestModerator");
+            if (testModerator != null && !await _userManager.IsInRoleAsync(testModerator, RoleNames.Moderator))
+            {
+                await _userManager.AddToRoleAsync(testModerator, RoleNames.Moderator);
+                usersAddedToRoles++;
+            }
+            var testAdministrator = await _userManager.FindByNameAsync("TestAdministrator");
+            if (testAdministrator != null && !await _userManager.IsInRoleAsync(testAdministrator, RoleNames.Administrator))
+            {
+                await _userManager.AddToRoleAsync(testAdministrator, RoleNames.Moderator);
+                await _userManager.AddToRoleAsync(testAdministrator, RoleNames.Administrator);
+                usersAddedToRoles++;
+            }
+            return new JsonResult(new
+            {
+                RolesCreated = rolesCreated,
+                UsersAddedToRoles = usersAddedToRoles
             });
         }
     }
