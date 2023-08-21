@@ -1,4 +1,5 @@
 using BGList.Constants;
+using BGList.gRPC;
 using BGList.Model;
 using BGList.Swagger;
 
@@ -160,6 +161,9 @@ namespace BGList
             //In memory cache added
             builder.Services.AddMemoryCache();
 
+            //AddingNewEventArgs gRPC service
+            builder.Services.AddGrpc();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -191,6 +195,8 @@ namespace BGList
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.MapGrpcService<GrpcService>();
 
             // Minimal API
             //app.MapGet("/error", [EnableCors("AnyOrigin")] () => Results.Problem());
